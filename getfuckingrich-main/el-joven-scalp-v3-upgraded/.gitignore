@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.env
+*.env.local
+.DS_Store
+*.log
+access_clicks.jsonl
+mt5_command_state.json
