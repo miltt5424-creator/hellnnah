@@ -53,7 +53,7 @@ const CACHE_TTL    = 5 * 1000;   // 5s live price cache
 const historyCache = {};
 // ⚡ TTL réduit pour 1min : 5s (était 15s) → zone scan toutes les 10s a besoin de données fraîches
 function getHistTTL(timeframe) {
-    const ttls = { '1min': 5*1000, '5min': 20*1000, '15min': 30*1000, '1h': 60*1000, '4h': 2*60*1000, '1d': 5*60*1000 };
+    const ttls = { '1min': 3*1000, '5min': 10*1000, '15min': 15*1000, '1h': 20*1000, '4h': 60*1000, '1d': 5*60*1000 };
     return ttls[timeframe] || 15*1000;
 }
 

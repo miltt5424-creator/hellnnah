@@ -31,7 +31,7 @@ const logger = require('../utils/logger');
 
 // ── Cache des zones par symbole ───────────────────────────────────
 const zoneCache = {};
-const ZONE_CACHE_TTL = 15 * 1000; // recalcul toutes les 60s (zones H1 = stables)
+const ZONE_CACHE_TTL = 60 * 1000; // recalcul toutes les 60s (zones H1 = stables)
 
 // ── Helpers ───────────────────────────────────────────────────────
 
@@ -327,38 +327,29 @@ function computeTP(zone, allZones, currentPrice, atrVal) {
     }
 }
 
-function enrichZones(zones, currentPrice, atrVal, h1Candles) {
+// ── 7. Filtrage et enrichissement des zones ───────────────────────
+
+function enrichZones(zones, currentPrice, atrVal) {
+    // Filtrer les zones invalidées (prix a déjà traversé la zone)
     const valid = zones.filter(z => {
-        // ── Filtre 1 : zone déjà traversée ──────────────────────
         if (z.type === 'bullish') {
-            if (currentPrice < z.bottom - atrVal * 0.3) return false;
+            // Zone bullish invalidée si le prix est passé SOUS la zone sans rebond
+            return currentPrice >= z.bottom - atrVal * 0.5;
         } else {
-            if (currentPrice > z.top + atrVal * 0.3) return false;
+            // Zone bearish invalidée si le prix est passé AU-DESSUS de la zone
+            return currentPrice <= z.top + atrVal * 0.5;
         }
-
-        // ── Filtre 2 : zone consommée (touchée 2+ fois) ──────────
-        // On compte combien de fois les candles sont entrées dans la zone
-        if (h1Candles && h1Candles.length > 0) {
-            let touches = 0;
-            const recentCandles = h1Candles.slice(-50); // 50 dernières bougies H1
-            for (const c of recentCandles) {
-                const touchedZone = c.low <= z.top && c.high >= z.bottom;
-                if (touchedZone) touches++;
-                if (touches >= 2) return false; // zone consommée après 2 touches
-            }
-        }
-
-        return true;
     });
 
+    // Calculer distance et status pour chaque zone
     return valid.map(z => {
-        const dist    = Math.abs(z.entry - currentPrice);
+        const dist = Math.abs(z.entry - currentPrice);
         const distPct = (dist / currentPrice) * 100;
         const distATR = dist / atrVal;
 
         let status = 'waiting';
-        if (distATR < 0.5)      status = 'active';
-        else if (distATR < 2.0) status = 'approaching';
+        if (distATR < 0.5) status = 'active';
+        else if (distATR < 2)  status = 'approaching';
 
         return {
             ...z,
@@ -368,9 +359,9 @@ function enrichZones(zones, currentPrice, atrVal, h1Candles) {
             status,
         };
     })
+    // Trier par proximité
     .sort((a, b) => a.distATR - b.distATR);
 }
-
 
 // ── EXPORT PRINCIPAL ──────────────────────────────────────────────
 

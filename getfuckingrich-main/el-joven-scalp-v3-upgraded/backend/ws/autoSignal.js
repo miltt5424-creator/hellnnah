@@ -301,6 +301,9 @@ async function scanSymbol(symbol, dxyCandles, now) {
         }
     }
 
+    // ── Prix frais juste avant le signal (évite le retard post-Ollama) ──
+    const freshPrice = await getPrice(symbol);
+    const freshLive  = freshPrice?.price || livePrice;
     const dec = DECIMALS[symbol] ?? DECIMALS.default;
     const tick = tickState[symbol] || {};
 
@@ -312,7 +315,7 @@ async function scanSymbol(symbol, dxyCandles, now) {
         confidence:     ollamaResult.confidence || confidence,
         compositeScore: score,
         inZone:         inZone || false,
-        entry:          +livePrice.toFixed(dec),
+        entry:          +freshLive.toFixed(dec),
         stopLoss:       +sl.toFixed(dec),
         takeProfit:     +tp.toFixed(dec),
         rr:             +rr.toFixed(2),
